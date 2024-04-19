@@ -12,7 +12,15 @@ class ToDoScreen extends StatefulWidget {
 
 class _ToDoScreenState extends State<ToDoScreen> {
   String? username;
+  String? collectionName;
+
   _ToDoScreenState(this.username);
+  @override
+  void initState() {
+    super.initState();
+    collectionName = null;
+  }
+
   final TextEditingController _textFieldController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -61,6 +69,27 @@ class _ToDoScreenState extends State<ToDoScreen> {
                   borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(45),
                       topRight: Radius.circular(45))),
+              child: StreamBuilder(
+                stream: _firestore.collection(collectionName!).snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return CircularProgressIndicator();
+                  return ListView.builder(
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      // return _buildListItem(snapshot.data!.docs[index]);
+                      var title = snapshot.data!.docs[index]["name"];
+                      return Container(
+                        margin: EdgeInsets.symmetric(vertical: 10),
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10)),
+                        child: Text(title),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],
