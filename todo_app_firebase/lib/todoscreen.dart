@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:todo_app_firebase/category.dart';
+import 'package:todo_app_firebase/tasklist.dart';
 
 class ToDoScreen extends StatefulWidget {
   String? username;
@@ -22,17 +24,13 @@ class _ToDoScreenState extends State<ToDoScreen> {
   }
 
   final TextEditingController _textFieldController = TextEditingController();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  void _addData(String text) async {
-    print('$text');
-    await _firestore.collection(text).add({'name': text});
-    print('Data added');
-    setState(() {});
-  }
+  // final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
+    final CollectionReference categoriesRef =
+        FirebaseFirestore.instance.collection('categories');
+
     return Scaffold(
       backgroundColor: Color.fromRGBO(208, 205, 236, 1),
       body: Column(
@@ -41,20 +39,21 @@ class _ToDoScreenState extends State<ToDoScreen> {
           Container(
             margin: EdgeInsets.only(top: 50, left: 20),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   child: Text(
                     "Hello",
-                    style: GoogleFonts.nanumMyeongjo(
-                        fontWeight: FontWeight.w500, fontSize: 40),
+                    style: GoogleFonts.tinos(
+                        fontWeight: FontWeight.w400, fontSize: 40),
                   ),
                 ),
                 Container(
                   margin: EdgeInsets.only(top: 15),
                   child: Text(
                     "${username}",
-                    style: GoogleFonts.nanumMyeongjo(
-                        fontWeight: FontWeight.w500, fontSize: 36),
+                    style: GoogleFonts.tinos(
+                        fontWeight: FontWeight.w400, fontSize: 36),
                   ),
                 )
               ],
@@ -63,6 +62,7 @@ class _ToDoScreenState extends State<ToDoScreen> {
           Expanded(
             child: Container(
               margin: EdgeInsets.only(top: 40),
+              padding: EdgeInsets.only(top: 60),
               // height: 100,
               decoration: BoxDecoration(
                   color: Color.fromRGBO(13, 12, 56, 1),
@@ -70,26 +70,73 @@ class _ToDoScreenState extends State<ToDoScreen> {
                       topLeft: Radius.circular(45),
                       topRight: Radius.circular(45))),
               child: StreamBuilder(
-                stream: _firestore.collection(collectionName!).snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return CircularProgressIndicator();
-                  return ListView.builder(
-                    itemCount: snapshot.data!.docs.length,
-                    itemBuilder: (context, index) {
-                      // return _buildListItem(snapshot.data!.docs[index]);
-                      var title = snapshot.data!.docs[index]["name"];
-                      return Container(
-                        margin: EdgeInsets.symmetric(vertical: 10),
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Text(title),
-                      );
-                    },
-                  );
-                },
-              ),
+                  stream: categoriesRef.snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    // converted firestore data(documetapshot data) ito our model class Category
+                    final List<Category> categories = snapshot.data!.docs
+                        .map((doc) => Category.fromSnapshot(doc))
+                        .toList();
+
+                    return ListView.builder(
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                        return Container(
+                          decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(12))),
+                          height: 70,
+                          margin: EdgeInsets.all(10),
+                          padding: EdgeInsets.all(10),
+                          child: ListTile(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TaskList(
+                                      categoryId: category.id,
+                                      categoryName: category.name),
+                                ),
+                              );
+                            },
+                            title: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  category.name,
+                                  style: GoogleFonts.jost(
+                                      fontWeight: FontWeight.w400,
+                                      fontSize: 24),
+                                ),
+                                Row(
+                                  children: [
+                                    IconButton(
+                                        onPressed: () {},
+                                        color: Color.fromRGBO(179, 183, 238, 1),
+                                        icon: Icon(Icons.edit_outlined)),
+                                    IconButton(
+                                        onPressed: () async {
+                                          await categoriesRef
+                                              .doc(category.id)
+                                              .delete();
+                                        },
+                                        color: Color.fromRGBO(179, 183, 238, 1),
+                                        icon:
+                                            Icon(Icons.delete_outline_rounded))
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }),
             ),
           ),
         ],
@@ -138,10 +185,18 @@ class _ToDoScreenState extends State<ToDoScreen> {
                       width: 100,
                       margin: EdgeInsets.only(top: 45),
                       child: ElevatedButton(
-                        onPressed: () {
-                          _addData(_textFieldController.text);
-                          Navigator.pop(context);
-                          _textFieldController.clear();
+                        onPressed: () async {
+                          String categoryName =
+                              _textFieldController.text.trim();
+                          if (categoryName.isNotEmpty) {
+                            await categoriesRef.add({
+                              'name': categoryName,
+                              'timestamp': FieldValue
+                                  .serverTimestamp(), // Add the timestamp field
+                            });
+                            _textFieldController.clear();
+                            Navigator.pop(context);
+                          }
                         },
                         style: ButtonStyle(
                           backgroundColor: MaterialStateProperty.all(
