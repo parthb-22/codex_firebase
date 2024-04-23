@@ -73,7 +73,51 @@ class _TaskListState extends State<TaskList> {
                           Row(
                             children: [
                               IconButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title: Text('Edit Task'),
+                                          content: TextField(
+                                            controller: _controller,
+                                            decoration: InputDecoration(
+                                                hintText: category.name),
+                                          ),
+                                          actions: <Widget>[
+                                            TextButton(
+                                              child: Text('CANCEL'),
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                _textFieldController.clear();
+                                              },
+                                            ),
+                                            TextButton(
+                                              child: Text('SAVE'),
+                                              onPressed: () async {
+                                                String newCategoryName =
+                                                    _textFieldController.text
+                                                        .trim();
+                                                if (newCategoryName
+                                                    .isNotEmpty) {
+                                                  await categoriesRef
+                                                      .doc(category.id)
+                                                      .update({
+                                                    'name': newCategoryName,
+                                                    'timestamp': FieldValue
+                                                        .serverTimestamp()
+                                                  });
+                                                }
+
+                                                Navigator.pop(context);
+                                                _textFieldController.clear();
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  },
                                   color: Color.fromRGBO(179, 183, 238, 1),
                                   icon: Icon(Icons.edit_outlined)),
                               IconButton(

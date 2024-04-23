@@ -14,17 +14,10 @@ class ToDoScreen extends StatefulWidget {
 
 class _ToDoScreenState extends State<ToDoScreen> {
   String? username;
-  String? collectionName;
 
   _ToDoScreenState(this.username);
-  @override
-  void initState() {
-    super.initState();
-    collectionName = null;
-  }
 
   final TextEditingController _textFieldController = TextEditingController();
-  // final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +109,56 @@ class _ToDoScreenState extends State<ToDoScreen> {
                                 Row(
                                   children: [
                                     IconButton(
-                                        onPressed: () {},
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) {
+                                              return AlertDialog(
+                                                title: Text('Edit Category'),
+                                                content: TextField(
+                                                  controller:
+                                                      _textFieldController,
+                                                  decoration: InputDecoration(
+                                                      hintText: category.name),
+                                                ),
+                                                actions: <Widget>[
+                                                  TextButton(
+                                                    child: Text('CANCEL'),
+                                                    onPressed: () {
+                                                      Navigator.pop(context);
+                                                      _textFieldController
+                                                          .clear();
+                                                    },
+                                                  ),
+                                                  TextButton(
+                                                    child: Text('SAVE'),
+                                                    onPressed: () async {
+                                                      String newCategoryName =
+                                                          _textFieldController
+                                                              .text
+                                                              .trim();
+                                                      if (newCategoryName
+                                                          .isNotEmpty) {
+                                                        await categoriesRef
+                                                            .doc(category.id)
+                                                            .update({
+                                                          'name':
+                                                              newCategoryName,
+                                                          'timestamp': FieldValue
+                                                              .serverTimestamp()
+                                                        });
+                                                      }
+
+                                                      Navigator.pop(context);
+                                                      _textFieldController
+                                                          .clear();
+                                                    },
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          );
+                                        },
                                         color: Color.fromRGBO(179, 183, 238, 1),
                                         icon: Icon(Icons.edit_outlined)),
                                     IconButton(
