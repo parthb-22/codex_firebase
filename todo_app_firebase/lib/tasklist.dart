@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:todo_app_firebase/Tasks.dart';
 
 class TaskList extends StatefulWidget {
@@ -23,6 +24,22 @@ class _TaskListState extends State<TaskList> {
         FirebaseFirestore.instance.collection('tasks');
 
     final TextEditingController _controller = TextEditingController();
+    final TextEditingController _dateController = TextEditingController();
+    DateTime? selectedDate;
+    Future<void> _selectDate(BuildContext context) async {
+      final DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2101),
+      );
+      if (picked != null && picked != selectedDate)
+        setState(() {
+          selectedDate = picked;
+          _dateController.text = DateFormat('yyyy-MM-dd').format(picked);
+          // Set selected date to text field
+        });
+    }
 
     return Scaffold(
       backgroundColor: Color.fromRGBO(208, 205, 236, 1),
@@ -56,19 +73,44 @@ class _TaskListState extends State<TaskList> {
                   final task = tasks[index];
                   return Container(
                     decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.all(Radius.circular(12))),
-                    height: 70,
+                      color: Colors.white,
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Color.fromRGBO(0, 0, 0, 0.25),
+                            offset: Offset(0, 4),
+                            blurRadius: 4)
+                      ],
+                    ),
+                    // height: 70,
                     margin: EdgeInsets.all(10),
                     padding: EdgeInsets.all(10),
                     child: ListTile(
                       title: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            task.title,
-                            style: GoogleFonts.jost(
-                                fontWeight: FontWeight.w400, fontSize: 24),
+                          Container(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  task.title,
+                                  style: GoogleFonts.jost(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: Color.fromRGBO(147, 149, 211, 1)),
+                                ),
+                                Text(
+                                  DateFormat('dd-MM-yyyy').format(task.date),
+                                  style: GoogleFonts.jost(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight
+                                          .w400), // Format DateTime as desired
+                                )
+
+                                // Format DateTime as desired
+                              ],
+                            ),
                           ),
                           Row(
                             children: [
@@ -82,35 +124,34 @@ class _TaskListState extends State<TaskList> {
                                           content: TextField(
                                             controller: _controller,
                                             decoration: InputDecoration(
-                                                hintText: category.name),
+                                                hintText: task.title),
                                           ),
                                           actions: <Widget>[
                                             TextButton(
                                               child: Text('CANCEL'),
                                               onPressed: () {
                                                 Navigator.pop(context);
-                                                _textFieldController.clear();
+                                                _controller.clear();
                                               },
                                             ),
                                             TextButton(
                                               child: Text('SAVE'),
                                               onPressed: () async {
                                                 String newCategoryName =
-                                                    _textFieldController.text
-                                                        .trim();
+                                                    _controller.text.trim();
                                                 if (newCategoryName
                                                     .isNotEmpty) {
-                                                  await categoriesRef
-                                                      .doc(category.id)
+                                                  await tasksRef
+                                                      .doc(task.id)
                                                       .update({
-                                                    'name': newCategoryName,
+                                                    'title': newCategoryName,
                                                     'timestamp': FieldValue
                                                         .serverTimestamp()
                                                   });
                                                 }
 
                                                 Navigator.pop(context);
-                                                _textFieldController.clear();
+                                                _controller.clear();
                                               },
                                             ),
                                           ],
@@ -142,7 +183,7 @@ class _TaskListState extends State<TaskList> {
             context: context,
             backgroundColor: Colors.transparent,
             builder: (context) => Container(
-              height: 300,
+              height: 400,
               child: Container(
                 // color: Colors.amber,
                 // height: 300,
@@ -189,7 +230,7 @@ class _TaskListState extends State<TaskList> {
                       margin: EdgeInsets.symmetric(horizontal: 50),
                       // padding: EdgeInsets.all(50),
                       child: TextField(
-                        // controller: _controller,
+                        controller: _dateController,
                         decoration: InputDecoration(
                             filled: true,
                             fillColor: Color.fromRGBO(208, 205, 236, 1),
@@ -198,7 +239,9 @@ class _TaskListState extends State<TaskList> {
                               borderSide: BorderSide.none,
                             ),
                             suffixIcon: IconButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  _selectDate(context);
+                                },
                                 icon: Icon(Icons.calendar_today_outlined))),
                       ),
                     ),
@@ -209,15 +252,20 @@ class _TaskListState extends State<TaskList> {
                         child: ElevatedButton(
                           onPressed: () async {
                             String taskTitle = _controller.text.trim();
-                            if (taskTitle.isNotEmpty) {
+                            String taskDate = _dateController.text.trim();
+
+                            if (taskTitle.isNotEmpty && taskDate.isNotEmpty) {
                               await tasksRef.add({
                                 'categoryId': categoryId,
                                 'title': taskTitle,
+                                'date': Timestamp.fromDate(
+                                    DateTime.parse(taskDate)),
                                 'isCompleted': false,
-                                'timestamp': FieldValue
-                                    .serverTimestamp(), // Add the timestamp field
+                                'timestamp': FieldValue.serverTimestamp(),
                               });
+
                               _controller.clear();
+                              _dateController.clear();
                               Navigator.pop(context);
                             }
                           },
