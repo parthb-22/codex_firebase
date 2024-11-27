@@ -66,13 +66,17 @@ class _HomePageState extends State<HomePage> {
                             builder: (context) => HouseDetails(),
                           ));
                     },
-                    child: Text(
-                      "BOOK NOW",
-                      style: GoogleFonts.poppins(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Color.fromRGBO(223, 223, 223, 1)),
-                    ),
+                    child: Text("BOOK NOW",
+                        style: GoogleFonts.poppins(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: Color.fromRGBO(223, 223, 223, 1))),
+                    style: ButtonStyle(
+                        backgroundColor: MaterialStatePropertyAll(
+                            Color.fromRGBO(4, 36, 47, 1)),
+                        shape: MaterialStatePropertyAll(RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(26))))),
                   ),
                 )
               ],
